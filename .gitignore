@@ -1,10 +1,10 @@
-/ecg-visualizer/node_modules/*
+ecg-visualizer/node_modules/
 
-/read_dataset/target/*
+read_dataset/target/
 
-/Model/venv/*
-/Model/__pycache__/
+Model/venv/
+Model/__pycache__/
 
-/Model/preprocesssedData/
-/Model/test.py
-/Model/AF_Model.pth
+Model/preprocesssedData/
+Model/test.py
+Model/AF_Model.pth
