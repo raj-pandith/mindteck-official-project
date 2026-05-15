@@ -1,0 +1,23 @@
+spring:
+   application:
+      name: read_dataset
+   servlet:
+    multipart:
+      max-file-size: 50MB
+      max-request-size: 50MB
+
+
+   kafka:
+      bootstrap-servers: localhost:9092
+      producer:
+         key-serializer: org.apache.kafka.common.serialization.StringSerializer
+         value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+
+   mongodb:
+      uri: mongodb+srv://helloworld:HelloWorld123$@cluster0.3qqf88m.mongodb.net/
+      database: ecg_db
+      
+server:
+   port: 8081
+
+    
