@@ -1,4 +1,4 @@
-/ecg-visualizer/node_modules/
+/ecg-visualizer/node_modules/*
 
 /read_dataset/target/*
 
