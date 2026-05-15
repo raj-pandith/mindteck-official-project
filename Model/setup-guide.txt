@@ -1,0 +1,13 @@
+1) open cmd -> python -m venv venv (one time setup)
+2) activate env -> venv\Scripts\activate (NO need , if "(venv)cmd>" )
+3) install libs -> pip install fastapi uvicorn torch numpy
+4) run -> uvicorn main:app --reload --host 0.0.0.0 --port 8000
+
+
+
+if port is already running and wanted to stop that port then 
+
+cmd> netstat -ano | findstr :8000
+TCP    127.0.0.1:8000    ...    LISTENING    12345
+
+taskkill /PID 12345 /F
