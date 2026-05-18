@@ -3,7 +3,6 @@ package com.mindteck.read_dataset.iot_simulation.service;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.UUID;
 
 import org.jetbrains.bio.npy.NpyArray;
@@ -22,23 +21,11 @@ public class ReadDatasetService {
 
     private final InsertDataIntoMongoAtlasService insertDataService;
 
-    /**
-     * Original method: Reads from a hardcoded local resource
-     */
-    public void readEcgDataset(int rows) {
-        Path path = Paths.get("src/main/resources/865_SIG_II.npy");
-        // processNpyFile(path, rows);
-    }
-
-    /**
-     * Web Upload method: Saves MultipartFile to temp storage and processes it
-     */
     public void readEcgDatasetFromUpload(MultipartFile file, int seconds,
             String patientId, String doctorId) throws IOException {
 
         Path tempFile = Files.createTempFile("upload-", ".npy");
 
-        // ✅ Generate unique report ID
         String reportId = UUID.randomUUID().toString();
 
         try {
@@ -51,10 +38,6 @@ public class ReadDatasetService {
         }
     }
 
-    /**
-     * Unified Processing Logic: Fixes the NullPointerException from
-     * image_afa934.png
-     */
     private void processNpyFile(Path path, int seconds,
             String patientId,
             String doctorId,

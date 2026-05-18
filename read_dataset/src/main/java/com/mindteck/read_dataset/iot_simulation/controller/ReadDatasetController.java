@@ -1,6 +1,5 @@
 package com.mindteck.read_dataset.iot_simulation.controller;
 
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -20,14 +19,6 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 public class ReadDatasetController {
 
     private final ReadDatasetService readDatasetService;
-
-    @PostMapping("/read")
-    public ResponseEntity<?> readDataset(@RequestParam int rows) {
-
-        readDatasetService.readEcgDataset(rows);
-
-        return new ResponseEntity<>("successfully read " + rows, HttpStatus.ACCEPTED);
-    }
 
     @PostMapping("/upload")
     public ResponseEntity<String> uploadFile(
