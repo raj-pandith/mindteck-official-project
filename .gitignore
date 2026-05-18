@@ -10,3 +10,7 @@ Model/test.py
 Model/AF_Model.pth
 
 pytorch_learning
+
+# Python cache files
+__pycache__/
+*.pyc
