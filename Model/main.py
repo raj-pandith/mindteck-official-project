@@ -46,17 +46,17 @@ app.add_middleware(
 
 
 @app.on_event("startup")
-def start_change_stream():
+async def start_change_stream():
     global main_loop
+
     main_loop = asyncio.get_running_loop()
+
     change_stream.main_loop = main_loop
     change_stream.manager = manager
-    thread = threading.Thread(target=watch_inserts, daemon=True)
-    thread.start()
 
-    worker_thread = threading.Thread(target=process_windows, daemon=True)
-    worker_thread.start()
-    
+    threading.Thread(target=watch_inserts, daemon=True).start()
+    threading.Thread(target=process_windows, daemon=True).start()
+
     print("🚀 Background threads started and manager injected.")
 
 class PredictJsonRequest(BaseModel):
@@ -71,14 +71,19 @@ class PredictJsonRequest(BaseModel):
         description="Classification threshold for P(AF). Default 0.5.",
     )
 
+@app.post("/reset")
+async def reset(doctor_id: str, patient_id: str):
+    print(f"♻️ Reset for {doctor_id}_{patient_id}")
 
+    manager.disconnect(doctor_id, patient_id)
+
+    return {"status": "reset done"}
 
 @app.get("/health", tags=["Utility"])
 def health():
     """Liveness / readiness check."""
     return {"status": "ok", "device": str(DEVICE)}
 
-model: ECG_CNN | None = None
 
 @app.post("/predict/json", tags=["Prediction"])
 def predict_from_json(body: PredictJsonRequest):
@@ -95,17 +100,16 @@ def predict_from_json(body: PredictJsonRequest):
 
     return result
 
-@app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
-    print("CONNECTED")
+@app.websocket("/ws/{doctor_id}/{patient_id}")
+async def websocket_endpoint(websocket: WebSocket, doctor_id: str, patient_id: str):
+    await manager.connect(doctor_id, patient_id, websocket)
 
     try:
         while True:
             await asyncio.sleep(1)
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
-        print("Disconnected")
+        manager.disconnect(doctor_id, patient_id)
+        print(f"Disconnected: {doctor_id}_{patient_id}")
 
 @app.get("/windows")
 def get_windows():

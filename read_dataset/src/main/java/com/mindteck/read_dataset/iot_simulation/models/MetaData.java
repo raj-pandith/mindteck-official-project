@@ -12,5 +12,12 @@ import lombok.Setter;
 @NoArgsConstructor
 @Data
 public class MetaData {
+
     private String patientId;
+
+    private String doctorId;
+
+    private String reportId;
+
+    private Long timestamp;
 }

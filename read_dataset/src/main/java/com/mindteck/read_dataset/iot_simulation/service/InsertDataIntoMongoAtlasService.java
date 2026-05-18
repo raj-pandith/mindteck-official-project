@@ -34,7 +34,11 @@ public class InsertDataIntoMongoAtlasService {
     }
 
     public void pushToKafka(PushDataToMongoAtlas data) {
-        kafkaTemplate.send("rawecg", data.getMetaData().getPatientId(), data);
-        System.out.println("Data pushed to Kafka: " + data);
+
+        String key = data.getMetaData().getReportId();
+
+        kafkaTemplate.send("rawecg", key, data);
+
+        System.out.println("Data pushed with reportId: " + key);
     }
 }

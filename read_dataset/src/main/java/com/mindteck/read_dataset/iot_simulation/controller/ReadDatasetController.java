@@ -32,12 +32,12 @@ public class ReadDatasetController {
     @PostMapping("/upload")
     public ResponseEntity<String> uploadFile(
             @RequestParam("file") MultipartFile file,
-            @RequestParam(value = "seconds", defaultValue = "5") int seconds // New Parameter
-    ) {
+            @RequestParam String patientId,
+            @RequestParam String doctorId,
+            @RequestParam(defaultValue = "5") int seconds) {
         try {
-            // Pass the user-defined 'rows' to your service logic
-            readDatasetService.readEcgDatasetFromUpload(file, seconds);
-            return ResponseEntity.ok("File processed successfully for " + seconds + " seconds.");
+            readDatasetService.readEcgDatasetFromUpload(file, seconds, patientId, doctorId);
+            return ResponseEntity.ok("File processed successfully");
         } catch (Exception e) {
             return ResponseEntity.status(500).body("Error: " + e.getMessage());
         }
