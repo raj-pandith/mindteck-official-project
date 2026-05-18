@@ -1,0 +1,9 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: ecg-display-service
+  data:
+    mongodb:
+      uri: "mongodb+srv://helloworld:HelloWorld123$@cluster0.3qqf88m.mongodb.net/ecg_db"

@@ -1,0 +1,1272 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CardioWatch — ECG Monitor</title>
+  <style>
+    *,
+    *::before,
+    *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0
+    }
+
+    :root {
+      --blue: #185FA5;
+      --blue-lt: #E6F1FB;
+      --blue-bd: #B5D4F4;
+      --green: #1D9E75;
+      --amber: #BA7517;
+      --purple: #534AB7;
+      --bg: #F7F9FC;
+      --bg2: #EEF3F9;
+      --panel: #fff;
+      --border: #DDE5EF;
+      --border-lt: #EEF3F9;
+      --text: #1A2634;
+      --text2: #5A7290;
+      --r: 8px;
+      --fm: 'Segoe UI', system-ui, sans-serif;
+      --mo: 'Consolas', 'SF Mono', monospace;
+    }
+
+    body {
+      font-family: var(--fm);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh
+    }
+
+    /* topbar */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--blue);
+      padding: 10px 18px;
+      border-radius: var(--r) var(--r) 0 0
+    }
+
+    .tl {
+      display: flex;
+      align-items: center;
+      gap: 10px
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 8px
+    }
+
+    .logo-txt {
+      color: #fff;
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: .3px
+    }
+
+    .dv {
+      width: 1px;
+      height: 18px;
+      background: rgba(255, 255, 255, .25)
+    }
+
+    .ward {
+      font-size: 12px;
+      color: rgba(255, 255, 255, .75);
+      letter-spacing: .5px
+    }
+
+    .tr {
+      display: flex;
+      align-items: center;
+      gap: 14px
+    }
+
+    .pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      background: rgba(255, 255, 255, .15);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      color: #fff
+    }
+
+    .dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #9FE1CB;
+      animation: blink 1.2s ease-in-out infinite
+    }
+
+    .dot.err {
+      background: #F09595;
+      animation: none
+    }
+
+    .dot.frz {
+      background: #FFD966;
+      animation: none
+    }
+
+    @keyframes blink {
+
+      0%,
+      100% {
+        opacity: 1
+      }
+
+      50% {
+        opacity: .35
+      }
+    }
+
+    .clk {
+      font-size: 13px;
+      color: rgba(255, 255, 255, .9);
+      font-family: var(--mo)
+    }
+
+    /* patient bar */
+    .pbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: var(--blue-lt);
+      padding: 8px 18px;
+      border-left: 1px solid var(--blue-bd);
+      border-right: 1px solid var(--blue-bd)
+    }
+
+    .pinfo {
+      display: flex;
+      align-items: center;
+      gap: 14px
+    }
+
+    .av {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      background: var(--blue);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      font-weight: 600;
+      color: #fff
+    }
+
+    .pnm {
+      font-size: 14px;
+      font-weight: 600;
+      color: #0C447C
+    }
+
+    .pmeta {
+      font-size: 11px;
+      color: var(--blue);
+      margin-top: 1px
+    }
+
+    .ptags {
+      display: flex;
+      gap: 6px
+    }
+
+    .tag {
+      font-size: 11px;
+      padding: 2px 9px;
+      border-radius: 20px;
+      background: var(--blue-bd);
+      color: #0C447C;
+      font-weight: 500
+    }
+
+    .tag.w {
+      background: #FAC775;
+      color: #633806
+    }
+
+    .sct {
+      font-size: 11px;
+      color: var(--blue);
+      font-family: var(--mo)
+    }
+
+    /* body */
+    .body {
+      display: grid;
+      grid-template-columns: 1fr 200px;
+      border: 1px solid var(--blue-bd);
+      border-top: none;
+      border-radius: 0 0 var(--r) var(--r);
+      overflow: hidden;
+      background: var(--panel)
+    }
+
+    .left {
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      border-right: 1px solid var(--border)
+    }
+
+    /* lead bar */
+    .lbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px
+    }
+
+    .llbl {
+      font-size: 11px;
+      color: var(--text2);
+      font-weight: 600;
+      letter-spacing: .5px
+    }
+
+    .ltabs {
+      display: flex;
+      gap: 4px
+    }
+
+    .tab {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: transparent;
+      color: var(--text2);
+      cursor: pointer;
+      font-family: var(--mo);
+      transition: all .15s
+    }
+
+    .tab.on {
+      background: var(--blue);
+      color: #fff;
+      border-color: var(--blue)
+    }
+
+    .tab:hover:not(.on) {
+      border-color: var(--blue);
+      color: var(--blue)
+    }
+
+    /* controls — freeze + fullscreen only */
+    .cbar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      background: var(--bg2);
+      border-radius: var(--r);
+      border: 1px solid var(--border)
+    }
+
+    .cbtn {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      font-size: 11px;
+      padding: 4px 11px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      background: var(--panel);
+      color: var(--text2);
+      cursor: pointer;
+      font-weight: 500;
+      transition: all .15s;
+      white-space: nowrap;
+      user-select: none
+    }
+
+    .cbtn:hover {
+      border-color: var(--blue);
+      color: var(--blue)
+    }
+
+    .cbtn.on {
+      background: #FFF8E1;
+      border-color: #F0C040;
+      color: #8A6000
+    }
+
+    /* wave */
+    .wwrap {
+      position: relative;
+      height: 170px;
+      background: var(--bg2);
+      border-radius: var(--r);
+      overflow: hidden
+    }
+
+    canvas.gc {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0
+    }
+
+    canvas.wc {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0
+    }
+
+    canvas.cc {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0;
+      pointer-events: none
+    }
+
+    .wbadge {
+      position: absolute;
+      top: 8px;
+      left: 10px;
+      font-size: 10px;
+      font-family: var(--mo);
+      background: rgba(24, 95, 165, .12);
+      color: var(--blue);
+      padding: 2px 8px;
+      border-radius: 20px;
+      letter-spacing: .5px;
+      pointer-events: none
+    }
+
+    .fov {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 248, 225, .4);
+      pointer-events: none
+    }
+
+    .fov.on {
+      display: flex
+    }
+
+    .ftag {
+      font-size: 11px;
+      font-weight: 600;
+      color: #8A6000;
+      background: #FFF8E1;
+      border: 1px solid #F0C040;
+      padding: 3px 12px;
+      border-radius: 20px;
+      letter-spacing: 1px
+    }
+
+    .smax {
+      position: absolute;
+      top: 6px;
+      right: 8px;
+      font-size: 10px;
+      font-family: var(--mo);
+      color: var(--text2);
+      pointer-events: none
+    }
+
+    .smin {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      font-size: 10px;
+      font-family: var(--mo);
+      color: var(--text2);
+      pointer-events: none
+    }
+
+    .nos {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      gap: 6px;
+      color: var(--text2);
+      font-size: 12px
+    }
+
+    .nos.h {
+      display: none
+    }
+
+    /* mini */
+    .mrow {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px
+    }
+
+    .mc {
+      background: var(--bg2);
+      border-radius: var(--r);
+      padding: 8px 10px;
+      border: 1px solid var(--border)
+    }
+
+    .mh {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px
+    }
+
+    .ml {
+      font-size: 10px;
+      color: var(--text2);
+      font-family: var(--mo);
+      letter-spacing: .5px
+    }
+
+    .mv {
+      font-size: 11px;
+      font-family: var(--mo);
+      font-weight: 600
+    }
+
+    .mcw {
+      position: relative;
+      height: 40px
+    }
+
+    .mcw canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0
+    }
+
+    /* right */
+    .right {
+      padding: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      background: var(--bg2)
+    }
+
+    .rt {
+      font-size: 10px;
+      color: var(--text2);
+      font-weight: 600;
+      letter-spacing: .8px;
+      margin-bottom: 2px
+    }
+
+    .vt {
+      background: var(--panel);
+      border: 1px solid var(--border);
+      border-radius: var(--r);
+      padding: 10px 12px;
+      border-left: 3px solid var(--blue)
+    }
+
+    .vt.v2 {
+      border-left-color: var(--green)
+    }
+
+    .vt.v3 {
+      border-left-color: var(--amber)
+    }
+
+    .vt.v4 {
+      border-left-color: var(--purple)
+    }
+
+    .vn {
+      font-size: 10px;
+      color: var(--text2);
+      letter-spacing: .8px;
+      margin-bottom: 4px
+    }
+
+    .vv {
+      font-size: 26px;
+      font-weight: 600;
+      font-family: var(--mo);
+      color: var(--blue);
+      line-height: 1
+    }
+
+    .vt.v2 .vv {
+      color: var(--green)
+    }
+
+    .vt.v3 .vv {
+      color: var(--amber)
+    }
+
+    .vt.v4 .vv {
+      color: var(--purple)
+    }
+
+    .vu {
+      font-size: 10px;
+      color: var(--text2);
+      margin-top: 2px
+    }
+
+    .rsp {
+      flex: 1
+    }
+
+    .rft {
+      font-size: 10px;
+      color: var(--text2);
+      text-align: center;
+      line-height: 1.6
+    }
+
+    /* FULLSCREEN */
+    .fso {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 9999;
+      background: #000;
+      flex-direction: column
+    }
+
+    .fso.on {
+      display: flex
+    }
+
+    .fstb {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      background: #0a1520;
+      border-bottom: 1px solid #1a3050
+    }
+
+    .fstit {
+      font-size: 13px;
+      font-family: var(--mo);
+      color: #9FE1CB;
+      letter-spacing: 2px
+    }
+
+    .fsinf {
+      font-size: 12px;
+      font-family: var(--mo);
+      color: #5A9070
+    }
+
+    .fscls {
+      background: none;
+      border: 1px solid #1a3050;
+      border-radius: 4px;
+      color: #9FE1CB;
+      font-size: 12px;
+      padding: 4px 12px;
+      cursor: pointer;
+      font-family: var(--mo);
+      letter-spacing: 1px
+    }
+
+    .fscls:hover {
+      background: #1a3050
+    }
+
+    .fsbd {
+      flex: 1;
+      position: relative;
+      overflow: hidden
+    }
+
+    #fsc {
+      display: block;
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      inset: 0
+    }
+
+    .fsgrid {
+      position: absolute;
+      inset: 0;
+      pointer-events: none
+    }
+
+    .fslb {
+      position: absolute;
+      top: 16px;
+      left: 20px;
+      font-size: 12px;
+      font-family: var(--mo);
+      background: rgba(0, 200, 120, .1);
+      color: #9FE1CB;
+      padding: 3px 12px;
+      border-radius: 20px;
+      border: 1px solid #1a4030;
+      pointer-events: none
+    }
+
+    .fsmax {
+      position: absolute;
+      top: 16px;
+      right: 20px;
+      font-size: 11px;
+      font-family: var(--mo);
+      color: #5A9070;
+      pointer-events: none
+    }
+
+    .fsmin {
+      position: absolute;
+      bottom: 16px;
+      right: 20px;
+      font-size: 11px;
+      font-family: var(--mo);
+      color: #5A9070;
+      pointer-events: none
+    }
+
+    .fsfzt {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 11px;
+      font-weight: 600;
+      color: #8A6000;
+      background: #FFF8E1;
+      border: 1px solid #F0C040;
+      padding: 3px 14px;
+      border-radius: 20px;
+      letter-spacing: 1px;
+      pointer-events: none;
+      display: none
+    }
+
+    .fsfzt.on {
+      display: block
+    }
+
+    .fsctrl {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 20px;
+      background: #0a1520;
+      border-top: 1px solid #1a3050;
+      flex-wrap: wrap
+    }
+
+    .fltabs {
+      display: flex;
+      gap: 4px;
+      margin-left: auto
+    }
+
+    .ftab {
+      font-size: 11px;
+      padding: 3px 10px;
+      border-radius: 20px;
+      border: 1px solid #1a3050;
+      background: transparent;
+      color: #5A9070;
+      cursor: pointer;
+      font-family: var(--mo);
+      transition: all .15s
+    }
+
+    .ftab.on {
+      background: #0F3D20;
+      color: #9FE1CB;
+      border-color: #1a5030
+    }
+
+    .ffbtn {
+      font-size: 11px;
+      padding: 4px 12px;
+      border-radius: 20px;
+      border: 1px solid #1a3050;
+      background: transparent;
+      color: #5A9070;
+      cursor: pointer;
+      font-family: var(--mo);
+      transition: all .15s
+    }
+
+    .ffbtn:hover {
+      border-color: #9FE1CB;
+      color: #9FE1CB
+    }
+
+    .ffbtn.on {
+      background: #332800;
+      border-color: #F0C040;
+      color: #FFD966
+    }
+  </style>
+</head>
+
+<body>
+
+  <div id="root">
+    <div class="topbar">
+      <div class="tl">
+        <div class="logo">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+          </svg>
+          <span class="logo-txt">CardioWatch</span>
+        </div>
+        <div class="dv"></div>
+        <span class="ward">Cardiac Care Unit — Bed 4B</span>
+      </div>
+      <div class="tr">
+        <div class="pill">
+          <div class="dot" id="dot"></div><span id="stxt">Connecting</span>
+        </div>
+        <span class="clk" id="clk">--:--:--</span>
+      </div>
+    </div>
+
+    <div class="pbar">
+      <div class="pinfo">
+        <div class="av">PT</div>
+        <div>
+          <div class="pnm">Patient</div>
+          <div class="pmeta">ID: <span id="pid">—</span> &nbsp;·&nbsp; Live monitoring</div>
+        </div>
+        <div class="ptags"><span class="tag">ECG Live</span><span class="tag w">12-Lead</span></div>
+      </div>
+      <span class="sct" id="sct">0 samples</span>
+    </div>
+
+    <div class="body">
+      <div class="left">
+
+        <div class="lbar">
+          <span class="llbl">Waveform display</span>
+          <div class="ltabs" id="ltabs">
+            <button class="tab on" data-l="lead2">Lead II</button>
+            <button class="tab" data-l="v1">V1</button>
+            <button class="tab" data-l="ra">RA</button>
+            <button class="tab" data-l="ll">LL</button>
+            <button class="tab" data-l="ov">Volt</button>
+          </div>
+        </div>
+
+        <div class="cbar">
+          <button class="cbtn" id="fzbtn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <rect x="6" y="4" width="4" height="16" rx="1" />
+              <rect x="14" y="4" width="4" height="16" rx="1" />
+            </svg>
+            Freeze
+          </button>
+          <button class="cbtn" id="fsbtn">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+              <polyline points="15 3 21 3 21 9" />
+              <polyline points="9 21 3 21 3 15" />
+              <line x1="21" y1="3" x2="14" y2="10" />
+              <line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
+            Full screen
+          </button>
+        </div>
+
+        <div class="wwrap" id="ww">
+          <canvas class="gc" id="gc"></canvas>
+          <canvas class="wc" id="wc"></canvas>
+          <canvas class="cc" id="cc"></canvas>
+          <div class="wbadge" id="wb">LEAD II</div>
+          <span class="smax" id="smx"></span>
+          <span class="smin" id="smn"></span>
+          <div class="fov" id="fov"><span class="ftag">⏸ FROZEN</span></div>
+          <div class="nos" id="nos">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"
+              style="color:var(--text2)">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" opacity=".4" />
+              <line x1="2" y1="2" x2="22" y2="22" stroke="#ccc" />
+            </svg>
+            <span>Waiting for signal</span>
+          </div>
+        </div>
+
+        <div class="mrow">
+          <div class="mc">
+            <div class="mh"><span class="ml">RA</span><span class="mv" id="mra" style="color:var(--blue)">—</span></div>
+            <div class="mcw"><canvas id="mcra"></canvas></div>
+          </div>
+          <div class="mc">
+            <div class="mh"><span class="ml">LL</span><span class="mv" id="mll" style="color:var(--green)">—</span>
+            </div>
+            <div class="mcw"><canvas id="mcll"></canvas></div>
+          </div>
+          <div class="mc">
+            <div class="mh"><span class="ml">V1</span><span class="mv" id="mv1" style="color:var(--amber)">—</span>
+            </div>
+            <div class="mcw"><canvas id="mcv1"></canvas></div>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="right">
+        <div class="rt">Vital readings</div>
+        <div class="vt">
+          <div class="vn">LEAD II</div>
+          <div class="vv" id="vl2">—</div>
+          <div class="vu">mV</div>
+        </div>
+        <div class="vt v2">
+          <div class="vn">V1</div>
+          <div class="vv" id="vv1">—</div>
+          <div class="vu">mV</div>
+        </div>
+        <div class="vt v3">
+          <div class="vn">Voltage</div>
+          <div class="vv" id="vvo">—</div>
+          <div class="vu">overall</div>
+        </div>
+        <div class="vt v4">
+          <div class="vn">Sample time</div>
+          <div class="vv" id="vst" style="font-size:20px">—</div>
+          <div class="vu">seconds</div>
+        </div>
+        <div class="rsp"></div>
+        <div class="rft">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            style="vertical-align:-2px">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+          </svg><br>
+          Secured telemetry<br>v2.5.0
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN -->
+  <div class="fso" id="fso">
+    <div class="fstb">
+      <span class="fstit">CARDIOWATCH — BEDSIDE MONITOR</span>
+      <span class="fsinf" id="fsinf">—</span>
+      <button class="fscls" id="fscls">✕ EXIT</button>
+    </div>
+    <div class="fsbd" id="fsbd">
+      <svg class="fsgrid" id="fsgrid"></svg>
+      <canvas id="fsc"></canvas>
+      <canvas id="fscc" style="position:absolute;inset:0;pointer-events:none;width:100%;height:100%"></canvas>
+      <span class="fslb" id="fslb">LEAD II</span>
+      <span class="fsmax" id="fsmax"></span>
+      <span class="fsmin" id="fsmin"></span>
+      <span class="fsfzt" id="fsfzt">⏸ FROZEN</span>
+    </div>
+    <div class="fsctrl">
+      <button class="ffbtn" id="fsfzbtn">⏸ Freeze</button>
+      <div class="fltabs" id="fltabs">
+        <button class="ftab on" data-l="lead2">Lead II</button>
+        <button class="ftab" data-l="v1">V1</button>
+        <button class="ftab" data-l="ra">RA</button>
+        <button class="ftab" data-l="ll">LL</button>
+        <button class="ftab" data-l="ov">Volt</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // ── Ring buffer (O(1) push, tracked min/max) ──────────────────────────────
+    class Ring {
+      constructor(cap) {
+        this.cap = cap; this.data = new Float32Array(cap);
+        this.head = 0; this.len = 0;
+        this.min = Infinity; this.max = -Infinity; this._stale = false;
+      }
+      push(v) {
+        if (v == null || isNaN(v)) return;
+        if (this.len === this.cap) {
+          const ev = this.data[this.head];
+          if (ev === this.min || ev === this.max) this._stale = true;
+        }
+        this.data[this.head] = v;
+        this.head = (this.head + 1) % this.cap;
+        if (this.len < this.cap) this.len++;
+        if (v < this.min) this.min = v;
+        if (v > this.max) this.max = v;
+        if (this._stale) this._recompute();
+      }
+      _recompute() {
+        let mn = Infinity, mx = -Infinity;
+        const s = (this.head - this.len + this.cap) % this.cap;
+        for (let i = 0; i < this.len; i++) {
+          const v = this.data[(s + i) % this.cap];
+          if (v < mn) mn = v; if (v > mx) mx = v;
+        }
+        this.min = mn; this.max = mx; this._stale = false;
+      }
+      copyTo(dest) {
+        const n = this.len, c = this.cap, s = (this.head - n + c) % c;
+        for (let i = 0; i < n; i++) dest[i] = this.data[(s + i) % c];
+        return n;
+      }
+    }
+
+    // ── State ─────────────────────────────────────────────────────────────────
+    const CAP = 500;
+    const bufs = { lead2: new Ring(CAP), v1: new Ring(CAP), ra: new Ring(CAP), ll: new Ring(CAP), ov: new Ring(CAP) };
+    const scratch = new Float32Array(CAP);
+    const fsScratch = new Float32Array(CAP);
+    const COLORS = { lead2: '#185FA5', v1: '#BA7517', ra: '#185FA5', ll: '#1D9E75', ov: '#534AB7' };
+    const LABELS = { lead2: 'LEAD II', v1: 'V1', ra: 'RA', ll: 'LL', ov: 'VOLTAGE' };
+
+    let activeLead = 'lead2', fsLead = 'lead2';
+    let frozen = false, frozenData = null, frozenLen = 0;
+    let sampleCount = 0, connected = false, fsOpen = false;
+    let waveformDirty = false, gridDirty = true, calibDirty = true, miniDirty = false;
+
+    // ── Clock ─────────────────────────────────────────────────────────────────
+    setInterval(() => {
+      document.getElementById('clk').textContent =
+        new Date().toLocaleTimeString('en-GB', { hour12: false });
+    }, 1000);
+
+    // ── Canvas helper (DPR-aware, cached) ─────────────────────────────────────
+    const cvCache = new WeakMap();
+    function ctx(canvas) {
+      let c = cvCache.get(canvas);
+      if (!c) { c = { c2d: canvas.getContext('2d'), w: 0, h: 0 }; cvCache.set(canvas, c); }
+      const W = canvas.parentElement.clientWidth;
+      const H = canvas.parentElement.clientHeight;
+      const dpr = window.devicePixelRatio || 1;
+      if (c.w !== W || c.h !== H) {
+        canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
+        c.c2d.setTransform(dpr, 0, 0, dpr, 0, 0);
+        c.w = W; c.h = H;
+        gridDirty = calibDirty = true;
+      }
+      return c;
+    }
+
+    // ── Grid (drawn once per resize) ──────────────────────────────────────────
+    function drawGrid(canvas, cols, rows, dark) {
+      const { c2d: cx, w, h } = ctx(canvas);
+      cx.clearRect(0, 0, w, h);
+      for (let i = 0; i <= cols; i++) {
+        const x = (i / cols) * w, big = dark && i % 5 === 0;
+        cx.strokeStyle = dark ? (big ? '#1a3050' : '#0d1e2e') : '#DDE5EF';
+        cx.lineWidth = dark ? (big ? 0.7 : 0.35) : 0.5;
+        cx.beginPath(); cx.moveTo(x, 0); cx.lineTo(x, h); cx.stroke();
+      }
+      for (let i = 0; i <= rows; i++) {
+        const y = (i / rows) * h, big = dark && i % 5 === 0;
+        cx.strokeStyle = dark ? (big ? '#1a3050' : '#0d1e2e') : '#DDE5EF';
+        cx.lineWidth = dark ? (big ? 0.7 : 0.35) : 0.5;
+        cx.beginPath(); cx.moveTo(0, y); cx.lineTo(w, y); cx.stroke();
+      }
+    }
+
+    // ── Calibration box (1mV × 1s marker) ────────────────────────────────────
+    function drawCalib(canvas, dark) {
+      const { c2d: cx, w, h } = ctx(canvas);
+      cx.clearRect(0, 0, w, h);
+      const bW = 40, bH = 30, x0 = 14, y0 = h - 14 - bH;
+      cx.strokeStyle = dark ? '#2A6A40' : '#185FA5';
+      cx.lineWidth = dark ? 1.5 : 1; cx.lineJoin = 'miter';
+      cx.beginPath();
+      cx.moveTo(x0, y0 + bH); cx.lineTo(x0, y0);
+      cx.lineTo(x0 + bW, y0); cx.lineTo(x0 + bW, y0 + bH);
+      cx.stroke();
+      cx.fillStyle = dark ? '#3A7A50' : '#5A7290';
+      cx.font = '9px monospace'; cx.textAlign = 'left';
+      cx.fillText('1mV', x0 + bW + 4, y0 + bH / 2 + 3);
+      cx.fillText('1s', x0 + bW / 2 - 5, y0 + bH + 12);
+    }
+
+    // ── Waveform (hot path — no allocations) ──────────────────────────────────
+    function drawWave(canvas, dispData, dispLen, rawMin, rawMax, color, maxEl, minEl, dark) {
+      const { c2d: cx, w, h } = ctx(canvas);
+      cx.clearRect(0, 0, w, h);
+      if (dispLen < 2) return;
+      if (!isFinite(rawMin)) return;
+
+      const range = rawMax - rawMin || 1, pad = range * 0.18;
+      const denom = range + 2 * pad, base = rawMin - pad;
+      const xScale = w / (dispLen - 1);
+
+      if (dark) {
+        cx.strokeStyle = 'rgba(0,224,138,0.12)';
+        cx.lineWidth = 5; cx.lineJoin = 'round'; cx.lineCap = 'round';
+        cx.beginPath();
+        for (let i = 0; i < dispLen; i++) {
+          const x = i * xScale, y = h - ((dispData[i] - base) / denom) * h;
+          i === 0 ? cx.moveTo(x, y) : cx.lineTo(x, y);
+        }
+        cx.stroke();
+        cx.strokeStyle = '#00E08A'; cx.lineWidth = 1.6;
+      } else {
+        cx.strokeStyle = color; cx.lineWidth = 1.8;
+      }
+      cx.lineJoin = 'round'; cx.lineCap = 'round';
+      cx.beginPath();
+      for (let i = 0; i < dispLen; i++) {
+        const x = i * xScale, y = h - ((dispData[i] - base) / denom) * h;
+        i === 0 ? cx.moveTo(x, y) : cx.lineTo(x, y);
+      }
+      cx.stroke();
+      if (maxEl) maxEl.textContent = rawMax.toFixed(3);
+      if (minEl) minEl.textContent = rawMin.toFixed(3);
+    }
+
+    function drawMini(canvas, ring, color) {
+      const { c2d: cx, w, h } = ctx(canvas);
+      cx.clearRect(0, 0, w, h);
+      if (ring.len < 2) return;
+      const n = ring.copyTo(scratch);
+      const mn = ring.min, mx = ring.max, range = mx - mn || 1, pad = range * .15;
+      const denom = range + 2 * pad, base = mn - pad;
+      cx.strokeStyle = color; cx.lineWidth = 1; cx.lineJoin = 'round';
+      cx.beginPath();
+      for (let i = 0; i < n; i++) {
+        const x = (i / (n - 1)) * w, y = h - ((scratch[i] - base) / denom) * h;
+        i === 0 ? cx.moveTo(x, y) : cx.lineTo(x, y);
+      }
+      cx.stroke();
+    }
+
+    // ── FS SVG grid ───────────────────────────────────────────────────────────
+    function drawFsGrid() {
+      const bd = document.getElementById('fsbd'), svg = document.getElementById('fsgrid');
+      const W = bd.clientWidth, H = bd.clientHeight;
+      svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+      svg.setAttribute('width', W); svg.setAttribute('height', H);
+      let html = '';
+      for (let c = 0; c <= 20; c++) {
+        const x = (c / 20) * W, big = c % 5 === 0;
+        html += `<line x1="${x}" y1="0" x2="${x}" y2="${H}" stroke="${big ? '#1a3050' : '#0d1e2e'}" stroke-width="${big ? .7 : .35}"/>`;
+      }
+      for (let r = 0; r <= 10; r++) {
+        const y = (r / 10) * H, big = r % 5 === 0;
+        html += `<line x1="0" y1="${y}" x2="${W}" y2="${y}" stroke="${big ? '#1a3050' : '#0d1e2e'}" stroke-width="${big ? .7 : .35}"/>`;
+      }
+      svg.innerHTML = html;
+    }
+
+    // ── rAF render loop ───────────────────────────────────────────────────────
+    function loop() {
+      requestAnimationFrame(loop);
+
+      if (gridDirty) {
+        drawGrid(document.getElementById('gc'), 10, 6, false);
+        gridDirty = false;
+      }
+      if (calibDirty) {
+        drawCalib(document.getElementById('cc'), false);
+        if (fsOpen) drawCalib(document.getElementById('fscc'), true);
+        calibDirty = false;
+      }
+      if (waveformDirty) {
+        // Main panel
+        let dispData, dispLen, rawMin, rawMax;
+        if (frozen && frozenData) {
+          dispData = frozenData; dispLen = frozenLen;
+          rawMin = Infinity; rawMax = -Infinity;
+          for (let i = 0; i < dispLen; i++) {
+            if (dispData[i] < rawMin) rawMin = dispData[i];
+            if (dispData[i] > rawMax) rawMax = dispData[i];
+          }
+        } else {
+          dispLen = bufs[activeLead].copyTo(scratch);
+          dispData = scratch; rawMin = bufs[activeLead].min; rawMax = bufs[activeLead].max;
+        }
+        drawWave(document.getElementById('wc'), dispData, dispLen, rawMin, rawMax,
+          COLORS[activeLead], document.getElementById('smx'), document.getElementById('smn'), false);
+
+        // Fullscreen panel
+        if (fsOpen) {
+          let fd, fl, fmin, fmax;
+          if (frozen && frozenData) {
+            fd = frozenData; fl = frozenLen;
+            fmin = rawMin; fmax = rawMax; // same freeze snap
+          } else {
+            fl = bufs[fsLead].copyTo(fsScratch);
+            fd = fsScratch; fmin = bufs[fsLead].min; fmax = bufs[fsLead].max;
+          }
+          drawWave(document.getElementById('fsc'), fd, fl, fmin, fmax,
+            null, document.getElementById('fsmax'), document.getElementById('fsmin'), true);
+        }
+
+        if (miniDirty) {
+          drawMini(document.getElementById('mcra'), bufs.ra, '#185FA5');
+          drawMini(document.getElementById('mcll'), bufs.ll, '#1D9E75');
+          drawMini(document.getElementById('mcv1'), bufs.v1, '#BA7517');
+          miniDirty = false;
+        }
+        waveformDirty = false;
+      }
+    }
+
+    // ── Freeze ────────────────────────────────────────────────────────────────
+    function setFrozen(state) {
+      frozen = state;
+      if (frozen) {
+        frozenLen = bufs[activeLead].copyTo(scratch);
+        frozenData = new Float32Array(frozenLen);
+        frozenData.set(scratch.subarray(0, frozenLen));
+      } else {
+        frozenData = null; frozenLen = 0;
+      }
+      const btn = document.getElementById('fzbtn');
+      const dot = document.getElementById('dot');
+      if (frozen) {
+        btn.classList.add('on');
+        btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"/></svg> Unfreeze';
+        document.getElementById('fov').classList.add('on');
+        dot.className = 'dot frz';
+        document.getElementById('stxt').textContent = 'Frozen';
+      } else {
+        btn.classList.remove('on');
+        btn.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg> Freeze';
+        document.getElementById('fov').classList.remove('on');
+        dot.className = connected ? 'dot' : 'dot err';
+        document.getElementById('stxt').textContent = connected ? 'Live' : 'No signal';
+      }
+      const fsb = document.getElementById('fsfzbtn');
+      fsb.classList.toggle('on', frozen);
+      fsb.textContent = frozen ? '▶ Unfreeze' : '⏸ Freeze';
+      document.getElementById('fsfzt').classList.toggle('on', frozen);
+      waveformDirty = true;
+    }
+    document.getElementById('fzbtn').addEventListener('click', () => setFrozen(!frozen));
+    document.getElementById('fsfzbtn').addEventListener('click', () => setFrozen(!frozen));
+
+    // ── Fullscreen ────────────────────────────────────────────────────────────
+    document.getElementById('fsbtn').addEventListener('click', () => {
+      fsOpen = true;
+      document.getElementById('fso').classList.add('on');
+      calibDirty = waveformDirty = true;
+      setTimeout(drawFsGrid, 30);
+    });
+    document.getElementById('fscls').addEventListener('click', () => {
+      fsOpen = false; document.getElementById('fso').classList.remove('on');
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && fsOpen) { fsOpen = false; document.getElementById('fso').classList.remove('on'); }
+    });
+
+    // ── Lead tabs ─────────────────────────────────────────────────────────────
+    document.getElementById('ltabs').addEventListener('click', ev => {
+      const btn = ev.target.closest('.tab'); if (!btn) return;
+      document.querySelectorAll('#ltabs .tab').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      activeLead = btn.dataset.l;
+      document.getElementById('wb').textContent = LABELS[activeLead];
+      waveformDirty = true;
+    });
+    document.getElementById('fltabs').addEventListener('click', ev => {
+      const btn = ev.target.closest('.ftab'); if (!btn) return;
+      document.querySelectorAll('.ftab').forEach(b => b.classList.remove('on'));
+      btn.classList.add('on');
+      fsLead = btn.dataset.l;
+      document.getElementById('fslb').textContent = LABELS[fsLead];
+      waveformDirty = true;
+    });
+
+    // ── Vitals (throttled 10/s) ───────────────────────────────────────────────
+    let lastVit = 0;
+    function updateVitals(e) {
+      const now = Date.now();
+      if (now - lastVit < 100) return;
+      lastVit = now;
+      const f = v => v != null ? parseFloat(v).toFixed(4) : '—';
+      const s = v => v != null ? parseFloat(v).toFixed(3) : '—';
+      document.getElementById('vl2').textContent = f(e.lead2);
+      document.getElementById('vv1').textContent = f(e.V1 ?? e.v1);
+      document.getElementById('vvo').textContent = f(e.overall_voltage);
+      document.getElementById('vst').textContent = f(e.sample_time);
+      document.getElementById('mra').textContent = s(e.RA ?? e.ra);
+      document.getElementById('mll').textContent = s(e.LL ?? e.ll);
+      document.getElementById('mv1').textContent = s(e.V1 ?? e.v1);
+      document.getElementById('fsinf').textContent =
+        `PT: ${e.patientId || '—'}  ·  L2: ${f(e.lead2)} mV  ·  ${new Date().toLocaleTimeString('en-GB', { hour12: false })}`;
+    }
+
+    // ── Ingest ────────────────────────────────────────────────────────────────
+    function ingest(e) {
+      bufs.v1.push(e.V1 ?? e.v1 ?? 0);
+      bufs.ll.push(e.LL ?? e.ll ?? 0);
+      bufs.ra.push(e.RA ?? e.ra ?? 0);
+      bufs.lead2.push(e.lead2 ?? 0);
+      bufs.ov.push(e.overall_voltage ?? 0);
+      sampleCount++;
+      if (sampleCount === 1) document.getElementById('nos').classList.add('h');
+      if (e.patientId) document.getElementById('pid').textContent = e.patientId;
+      document.getElementById('sct').textContent = `${sampleCount} sample${sampleCount !== 1 ? 's' : ''}`;
+      if (!frozen) { waveformDirty = true; miniDirty = true; }
+      updateVitals(e);
+    }
+
+    // ── Status ────────────────────────────────────────────────────────────────
+    function setStatus(s) {
+      if (frozen) return;
+      const dot = document.getElementById('dot'), txt = document.getElementById('stxt');
+      if (s === 'live') { dot.className = 'dot'; txt.textContent = 'Live'; }
+      else if (s === 'err') { dot.className = 'dot err'; txt.textContent = 'No signal'; }
+      else { dot.className = 'dot'; txt.textContent = 'Connecting'; }
+    }
+
+    // ── SSE with exponential backoff ──────────────────────────────────────────
+    let retryDelay = 1000;
+    function connect() {
+      setStatus('connecting');
+      const es = new EventSource('/api/ecg/stream');
+      es.addEventListener('ecg', ev => {
+        if (!connected) { connected = true; retryDelay = 1000; setStatus('live'); }
+        try { ingest(JSON.parse(ev.data)); } catch (_) { }
+      });
+      es.onerror = () => {
+        connected = false; setStatus('err'); es.close();
+        setTimeout(connect, retryDelay);
+        retryDelay = Math.min(retryDelay * 2, 15000);
+      };
+    }
+
+    // ── Resize (debounced) ────────────────────────────────────────────────────
+    let rzTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(rzTimer);
+      rzTimer = setTimeout(() => {
+        [document.getElementById('gc'), document.getElementById('wc'), document.getElementById('cc'),
+        document.getElementById('fsc'), document.getElementById('fscc'),
+        document.getElementById('mcra'), document.getElementById('mcll'), document.getElementById('mcv1')
+        ].forEach(c => { const e = cvCache.get(c); if (e) { e.w = 0; e.h = 0; } });
+        gridDirty = calibDirty = waveformDirty = miniDirty = true;
+        if (fsOpen) drawFsGrid();
+      }, 80);
+    });
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    connect();
+    loop();
+  </script>
+</body>
+
+</html>
