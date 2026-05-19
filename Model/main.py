@@ -71,11 +71,16 @@ class PredictJsonRequest(BaseModel):
         description="Classification threshold for P(AF). Default 0.5.",
     )
 
+from change_stream import reset_user_state
+
 @app.post("/reset")
 async def reset(doctor_id: str, patient_id: str):
-    print(f"♻️ Reset for {doctor_id}_{patient_id}")
+    user_id = f"{doctor_id}_{patient_id}"
 
-    manager.disconnect(doctor_id, patient_id)
+    print(f"Reset for {user_id}")
+
+    # ✅ Reset only this user's buffer + filter
+    reset_user_state(user_id)
 
     return {"status": "reset done"}
 

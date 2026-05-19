@@ -8,11 +8,9 @@ import queue
 import asyncio
 from datetime import datetime, timedelta
 
-# =========================
-# GLOBALS
-# =========================
 
-RESET_THRESHOLD = 5
+
+# RESET_THRESHOLD = 5
 
 main_loop = None
 manager = None
@@ -24,9 +22,6 @@ user_states = {}
 window_queue = queue.Queue(maxsize=100)
 
 
-# =========================
-# HELPERS
-# =========================
 
 def slide_buffer(buffer, step=300):
     return buffer[step:] if len(buffer) > step else []
@@ -58,10 +53,22 @@ def parse_timestamp(meta):
     else:
         return datetime.utcnow()
 
+def reset_user_state(user_id):
+    if user_id in user_states:
+        state = user_states[user_id]
 
-# =========================
-# WATCH MONGODB STREAM
-# =========================
+        # Clear buffer
+        state["buffer"].buffer = []
+
+        # Reset filter
+        if hasattr(state["filter"], "reset"):
+            state["filter"].reset()
+
+        # Reset timestamp
+        state["last_timestamp"] = None
+
+        print(f"♻️ Reset state for {user_id}")
+
 
 def watch_inserts():
     print("Watching MongoDB inserts...")
@@ -74,42 +81,28 @@ def watch_inserts():
 
             doc = change["fullDocument"]
 
-            # 🔥 Extract doctor + patient
             meta = doc.get("metaData", {})
             doctor_id = str(meta.get("doctorId", "")).strip()
             patient_id = str(meta.get("patientId", "")).strip()
             if not doctor_id or not patient_id:
-                print("❌ Missing doctorId/patientId")
+                print("Missing doctorId/patientId")
                 continue
 
             user_id = f"{doctor_id}_{patient_id}"
 
-            # 🔥 Get per-user state
             state = get_user_state(user_id)
             rt_filter = state["filter"]
             ecg_buffer = state["buffer"]
-            last_timestamp = state["last_timestamp"]
 
             arrival_time = parse_timestamp(meta)
-            # 🔥 Inactivity reset
-            if last_timestamp:
-                gap = (arrival_time - last_timestamp).total_seconds()
-                if gap > RESET_THRESHOLD:
-                    print(f"[{user_id}] Inactivity ({gap:.2f}s) → Reset")
-                    ecg_buffer.buffer = []
-                    if hasattr(rt_filter, "reset"):
-                        rt_filter.reset()
-
             state["last_timestamp"] = arrival_time
 
             raw_value = doc.get("lead2")
             if raw_value is None:
                 continue
 
-            # 🔥 FILTER
             filtered = rt_filter.process(float(raw_value))
 
-            # 🔥 SEND LIVE SAMPLE (ISOLATED)
             if manager and main_loop:
                 data = {
                     "type": "LIVE_SAMPLE",
@@ -126,7 +119,6 @@ def watch_inserts():
                     main_loop
                 )
 
-            # 🔥 BUFFER
             ecg_buffer.add(filtered)
 
             if not ecg_buffer.is_full():
@@ -134,7 +126,6 @@ def watch_inserts():
 
             window = ecg_buffer.get_window()
 
-            # 🔥 VALIDATION
             is_valid, r_count = is_valid_window(window)
 
             if not is_valid:
@@ -156,9 +147,6 @@ def watch_inserts():
             ecg_buffer.buffer = slide_buffer(ecg_buffer.buffer)
 
 
-# =========================
-# PROCESS WINDOWS
-# =========================
 
 def process_windows():
     global manager, main_loop
@@ -199,12 +187,8 @@ def process_windows():
 
             windows_collection.insert_one(db_doc)
 
-            # 🔥 SEND RESULT ONLY TO THAT USER
-            # 🔥 SEND RESULT ONLY TO THAT USER
-            # 🔥 Extract doctor & patient
             doctor_id, patient_id = user_id.split("_")
 
-            # 🔥 SEND RESULT ONLY TO THAT USER
             data = {
                 "type": "WINDOW_RESULT",
                 "window_id": window_id,
@@ -228,9 +212,6 @@ def process_windows():
             window_queue.task_done()
 
 
-# =========================
-# WEBSOCKET MANAGER
-# =========================
 
 from fastapi import WebSocket
 
@@ -270,5 +251,5 @@ class ConnectionManager:
                 self.disconnect(doctor_id, patient_id, ws)
 
     def clear(self):
-        print("♻️ Clearing all connections")
+        print("Clearing all connections")
         self.connections.clear()

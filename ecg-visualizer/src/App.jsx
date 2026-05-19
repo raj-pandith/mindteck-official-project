@@ -24,7 +24,6 @@ function App() {
   const liveScrollRef = useRef(null);
   const fileInputRef = useRef(null);
 
-  // Smooth scroll history segment wrapper when list appends
   useEffect(() => {
     if (scrollRef.current) {
       scrollRef.current.scrollTo({
@@ -53,9 +52,10 @@ function App() {
     }
 
     try {
-      await fetch(`http://localhost:8000/reset?doctor_id=${doctorId}&patient_id=${patientId}`, {
-        method: "POST"
-      });
+      await fetch(
+        `http://localhost:8000/reset?doctor_id=${doctorId}&patient_id=${patientId}`,
+        { method: "POST" }
+      );
 
       resetECGState();
       setCurrentFileName(selectedFile.name);
