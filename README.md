@@ -104,7 +104,7 @@ docker compose up -d
 
 ---
 
-###  Create MongoDB Sink Connector
+### 5.  Create MongoDB Sink Connector
 
 ```bash
 curl -X POST http://localhost:8083/connectors \
@@ -127,7 +127,7 @@ curl -X POST http://localhost:8083/connectors \
 
 ---
 
-##  6. Run Dataset Reader Service
+###  6. Run Dataset Reader Service
 
 ```bash
 ./mvnw spring-boot:run
