@@ -111,9 +111,9 @@ function App() {
     console.log("Connecting WS with reportId:", reportId);
     const ws = new WebSocket(`ws://localhost:8000/ws/${doctorId}/${patientId}`);
 
-    ws.onopen = () => console.log("✅ WebSocket CONNECTED");
-    ws.onerror = (err) => console.error("❌ WebSocket ERROR:", err);
-    ws.onclose = (event) => console.warn("⚠️ WebSocket CLOSED:", event);
+    ws.onopen = () => console.log("WebSocket CONNECTED");
+    ws.onerror = (err) => console.error("WebSocket ERROR:", err);
+    ws.onclose = (event) => console.warn(" WebSocket CLOSED:", event);
 
     let counter = 0;
 
@@ -174,10 +174,10 @@ function App() {
         </div>
       )}
 
-      <LiveECGChart
+      {/* <LiveECGChart
         liveScrollRef={liveScrollRef}
         liveData={liveData}
-      />
+      /> */}
 
       <WindowHistoryStrip
         windows={windows}
