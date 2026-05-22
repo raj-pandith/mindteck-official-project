@@ -175,9 +175,12 @@ def process_windows():
             end_time = actual_end_time
             start_time = end_time - timedelta(seconds=window_duration)
 
-            db_doc = {
+            id_parts = user_id.split("_")
+            doctor_id = id_parts[0] if len(id_parts) > 0 else "unknown"
+            patient_id = id_parts[1] if len(id_parts) > 1 else "unknown"
+
+            window_segment = {
                 "window_id": window_id,
-                "user_id": user_id,
                 "start_time": start_time,
                 "end_time": end_time,
                 "ecg_signal": ecg_signal,
@@ -185,9 +188,28 @@ def process_windows():
                 "prob_af": prob
             }
 
-            windows_collection.insert_one(db_doc)
-
-            doctor_id, patient_id = user_id.split("_")
+            windows_collection.update_one(
+                { "user_id": user_id },
+                {
+                    "$setOnInsert": {
+                        "doctor_id": doctor_id,
+                        "patient_id": patient_id,
+                        "session_start": start_time
+                    },
+                    "$set": {
+                        "session_end": end_time,
+                        "latest_analysis": {
+                            "overall_label": label,
+                            "overall_prob_af": prob
+                        }
+                    },
+                    "$push": {
+                        "window_history": window_segment
+                    },
+                    "$inc": { "version": 1 }
+                },
+                upsert=True
+            )
 
             data = {
                 "type": "WINDOW_RESULT",
