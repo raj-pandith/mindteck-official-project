@@ -130,5 +130,5 @@ curl -X POST http://localhost:8083/connectors \
 ###  6. Run Dataset Reader Service
 
 ```bash
-./mvnw spring-boot:run
+.\mvnw spring-boot:run
 ```

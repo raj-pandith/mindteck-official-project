@@ -26,15 +26,6 @@ public class PushDataToMongoAtlas {
     @Field("meta")
     private MetaData metaData;
 
-    @Field("V1")
-    private Double v1;
-
-    @Field("LL")
-    private Double ll;
-
-    @Field("RA")
-    private Double ra;
-
     @Field("lead2")
     private Double lead2;
 
