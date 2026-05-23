@@ -148,8 +148,6 @@ async def get_patient_window_segment(patient_id: str, window_id: str):
             )
             
         matched_window = document["window_history"][0]
-        print(matched_window)
-        
         sanitized_json = json.loads(json_util.dumps(matched_window))
         
         return sanitized_json
