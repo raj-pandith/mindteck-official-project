@@ -94,7 +94,7 @@ function App() {
     setSelectedId(windowId);
     setLoadingDetail(true);
     try {
-      const res = await fetch(`http://localhost:8000/window/${windowId}`);
+      const res = await fetch(`http://localhost:8000/window/${patientId}/${windowId}`);
       const data = await res.json();
       setSelectedWindow(data);
     } catch (err) {
@@ -174,10 +174,10 @@ function App() {
         </div>
       )}
 
-      {/* <LiveECGChart
+      <LiveECGChart
         liveScrollRef={liveScrollRef}
         liveData={liveData}
-      /> */}
+      />
 
       <WindowHistoryStrip
         windows={windows}

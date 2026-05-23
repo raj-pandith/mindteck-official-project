@@ -4,7 +4,7 @@ import io
 import tempfile
 from pathlib import Path
 from typing import List
-
+import json
 import numpy as np
 import torch
 import torch.nn as nn
@@ -22,6 +22,7 @@ from model_service import (
     run_inference,
     DEFAULT_THRESHOLD
 )
+from bson import json_util
 
 
 main_loop = None
@@ -125,14 +126,39 @@ def get_windows():
 
 from fastapi import HTTPException
 
-@app.get("/window/{window_id}")
-def get_window(window_id: str):
-    doc = windows_collection.find_one({"window_id": window_id})
 
-    if not doc:
-        raise HTTPException(status_code=404, detail="Window not found")
+@app.get("/window/{patient_id}/{window_id}")
+async def get_patient_window_segment(patient_id: str, window_id: str):
+    try:
+        document = windows_collection.find_one(
+            {
+                "patient_id": patient_id,
+                "window_history.window_id": window_id
+            },
+            {
+                "window_history": {"$elemMatch": {"window_id": window_id}},
+                "_id": 0 
+            }
+        )
+        
+        if not document or "window_history" not in document or not document["window_history"]:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"ECG window footprint tracking '{window_id}' not found for patient '{patient_id}'."
+            )
+            
+        matched_window = document["window_history"][0]
+        print(matched_window)
+        
+        sanitized_json = json.loads(json_util.dumps(matched_window))
+        
+        return sanitized_json
 
-    # Convert Mongo _id to string
-    doc["_id"] = str(doc["_id"])
-
-    return doc
+    except HTTPException as http_err:
+        raise http_err
+    except Exception as e:
+        print(f"[FATAL EXCEPTION CRASH] Error log profile trace: {str(e)}")
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Internal aggregation engine breakdown: {str(e)}"
+        )
