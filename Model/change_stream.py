@@ -7,7 +7,7 @@ from model_service import run_inference
 import queue
 import asyncio
 from datetime import datetime, timedelta
-
+from pymongo import ReturnDocument
 
 
 # RESET_THRESHOLD = 5
@@ -188,13 +188,20 @@ def process_windows():
                 "prob_af": prob
             }
 
-            windows_collection.update_one(
+            if prob >= 0.5:
+                af_inc = 1
+                normal_inc = 0
+            else:
+                af_inc = 0
+                normal_inc = 1
+
+            updated_doc = windows_collection.find_one_and_update(
                 { "user_id": user_id },
                 {
                     "$setOnInsert": {
                         "doctor_id": doctor_id,
                         "patient_id": patient_id,
-                        "session_start": start_time
+                        "session_start": start_time,
                     },
                     "$set": {
                         "session_end": end_time,
@@ -206,10 +213,18 @@ def process_windows():
                     "$push": {
                         "window_history": window_segment
                     },
-                    "$inc": { "version": 1 }
+                    "$inc": {
+                        "version": 1,
+                        "af_count": af_inc,
+                        "normal_count": normal_inc
+                    }
                 },
-                upsert=True
+                upsert=True,
+                return_document=ReturnDocument.AFTER 
             )
+
+            af_count = updated_doc.get("af_count", 0)
+            normal_count = updated_doc.get("normal_count", 0)
 
             data = {
                 "type": "WINDOW_RESULT",
@@ -218,7 +233,9 @@ def process_windows():
                 "ecg": ecg_signal,
                 "prediction": label,
                 "confidence": prob,
-                "timestamp": actual_end_time.isoformat()
+                "timestamp": actual_end_time.isoformat(),
+                 "af_count": af_count,
+                "normal_count": normal_count,
             }
 
             if manager and main_loop:

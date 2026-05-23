@@ -3,6 +3,8 @@ import DataIngestionForm from "./components/DataIngestionForm";
 import LiveECGChart from "./components/LiveECGChart";
 import WindowHistoryStrip from "./components/WindowHistoryStrip";
 import WindowDetailPanel from "./components/WindowDetailPanel";
+import AFSegmentsViewer from "./components/AFSegmentsViewer";
+import ReportDownloader from "./components/ReportDownloader";
 
 function App() {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -19,6 +21,8 @@ function App() {
   const [liveData, setLiveData] = useState([]);
   const [loadingDetail, setLoadingDetail] = useState(false);
   const [currentFileName, setCurrentFileName] = useState("");
+  const [af_count, setAfCount] = useState(0);
+  const [normal_count, setNormalCount] = useState(0);
 
   const scrollRef = useRef(null);
   const liveScrollRef = useRef(null);
@@ -139,6 +143,9 @@ function App() {
           if (exists) return prev;
           return [...prev, msg];
         });
+        setAfCount(msg.af_count);
+        setNormalCount(msg.normal_count);
+
       }
     };
 
@@ -191,6 +198,18 @@ function App() {
         loadingDetail={loadingDetail}
         setSelectedWindow={setSelectedWindow}
       />
+
+      <div>
+        PATIENT ID: <strong>{patientId}</strong> | DOCTOR ID: <strong>{doctorId}</strong> | TOTAL SAMPLES: <strong>{totalSamples}</strong>
+      </div>
+
+      <div style={{ marginTop: "10px", color: "#0f0", fontSize: "13px" }}>
+        AF COUNT: <strong>{af_count}</strong> | NORMAL COUNT: <strong>{normal_count}</strong>
+      </div>
+
+      <AFSegmentsViewer />
+      <ReportDownloader />
+
     </div>
   );
 }
