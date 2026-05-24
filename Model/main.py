@@ -208,42 +208,35 @@ def generate_report(doctor_id: str, patient_id: str):
 
     user_id = f"{doctor_id}_{patient_id}"
 
-    # ✅ Fetch from MongoDB
     doc = windows_collection.find_one({"user_id": user_id})
 
     if not doc:
         raise HTTPException(status_code=404, detail="Patient not found")
 
-    # ✅ Extract values safely
     af_count = doc.get("af_count", 0)
     normal_count = doc.get("normal_count", 0)
 
     total = af_count + normal_count
     af_percentage = (af_count / total * 100) if total > 0 else 0
 
-    # ✅ Create PDF
     buffer = io.BytesIO()
     pdf = SimpleDocTemplate(buffer)
     styles = getSampleStyleSheet()
 
     content = []
 
-    # Title
     content.append(Paragraph("ECG AF REPORT", styles["Title"]))
     content.append(Spacer(1, 20))
 
-    # Patient Info
     content.append(Paragraph(f"Doctor ID: {doctor_id}", styles["Normal"]))
     content.append(Paragraph(f"Patient ID: {patient_id}", styles["Normal"]))
     content.append(Spacer(1, 15))
 
-    # ECG Data
     content.append(Paragraph(f"AF Count: {af_count}", styles["Normal"]))
     content.append(Paragraph(f"Normal Count: {normal_count}", styles["Normal"]))
     content.append(Paragraph(f"Total Segments: {total}", styles["Normal"]))
     content.append(Spacer(1, 15))
 
-    # Result
     content.append(Paragraph(f"AF Percentage: {af_percentage:.2f}%", styles["Heading2"]))
 
     pdf.build(content)

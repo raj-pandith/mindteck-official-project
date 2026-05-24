@@ -10,14 +10,10 @@ from datetime import datetime, timedelta
 from pymongo import ReturnDocument
 from websocketconn import ConnectionManager
 
-# RESET_THRESHOLD = 5
-
 manager = ConnectionManager()
 main_loop = asyncio.get_event_loop()
 
-# 🔥 PER-USER STATE (doctorId + patientId)
 user_states = {}
-# 🔥 SHARED QUEUE (can also be per-user if needed)
 window_queue = queue.Queue(maxsize=100)
 
 
@@ -56,17 +52,14 @@ def reset_user_state(user_id):
     if user_id in user_states:
         state = user_states[user_id]
 
-        # Clear buffer
         state["buffer"].buffer = []
 
-        # Reset filter
         if hasattr(state["filter"], "reset"):
             state["filter"].reset()
 
-        # Reset timestamp
         state["last_timestamp"] = None
 
-        print(f"♻️ Reset state for {user_id}")
+        print(f"Reset state for {user_id}")
 
 
 def watch_inserts():
