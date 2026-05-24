@@ -8,16 +8,15 @@ import queue
 import asyncio
 from datetime import datetime, timedelta
 from pymongo import ReturnDocument
-
+from websocketconn import ConnectionManager
 
 # RESET_THRESHOLD = 5
 
-main_loop = None
-manager = None
+manager = ConnectionManager()
+main_loop = asyncio.get_event_loop()
 
 # 🔥 PER-USER STATE (doctorId + patientId)
 user_states = {}
-
 # 🔥 SHARED QUEUE (can also be per-user if needed)
 window_queue = queue.Queue(maxsize=100)
 
@@ -250,45 +249,3 @@ def process_windows():
         finally:
             window_queue.task_done()
 
-
-
-from fastapi import WebSocket
-
-class ConnectionManager:
-    def __init__(self):
-        self.connections = {}
-
-    async def connect(self, doctor_id, patient_id, websocket: WebSocket):
-        await websocket.accept()
-        key = f"{doctor_id}_{patient_id}"
-
-        if key not in self.connections:
-            self.connections[key] = []
-
-        self.connections[key].append(websocket)
-        print(f"CONNECTED: {key}")
-
-    def disconnect(self, doctor_id, patient_id, websocket):
-        key = f"{doctor_id}_{patient_id}"
-
-        if key in self.connections:
-            if websocket in self.connections[key]:
-                self.connections[key].remove(websocket)
-
-            if not self.connections[key]:
-                del self.connections[key]
-
-        print(f"DISCONNECTED: {key}")
-
-    async def broadcast_to_user(self, doctor_id, patient_id, data):
-        key = f"{doctor_id}_{patient_id}"
-
-        for ws in self.connections.get(key, []):
-            try:
-                await ws.send_json(data)
-            except:
-                self.disconnect(doctor_id, patient_id, ws)
-
-    def clear(self):
-        print("Clearing all connections")
-        self.connections.clear()
