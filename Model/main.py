@@ -26,7 +26,6 @@ from bson import json_util
 
 from fastapi.responses import FileResponse
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
 import os
 from fastapi.responses import StreamingResponse
@@ -34,11 +33,20 @@ main_loop = None
 
 from fastapi import FastAPI, APIRouter, HTTPException
 from fastapi.responses import StreamingResponse
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.pagesizes import letter
 import io
 from fastapi import Response
+
+from datetime import datetime
+from reportlab.lib import colors
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from reportlab.lib.units import inch
+from reportlab.lib.enums import TA_CENTER
+from reportlab.platypus import (
+    SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+)
+from reportlab.graphics.shapes import Drawing, Rect, Line, String
 
 manager = ConnectionManager()
 
@@ -70,7 +78,7 @@ async def start_change_stream():
     threading.Thread(target=watch_inserts, daemon=True).start()
     threading.Thread(target=process_windows, daemon=True).start()
 
-    print("🚀 Background threads started and manager injected.")
+    print("Background threads started and manager injected.")
 
 class PredictJsonRequest(BaseModel):
     windows: List[List[float]] = Field(
@@ -101,7 +109,6 @@ async def reset(doctor_id: str, patient_id: str):
 
 @app.get("/health", tags=["Utility"])
 def health():
-    """Liveness / readiness check."""
     return {"status": "ok", "device": str(DEVICE)}
 
 
@@ -207,7 +214,6 @@ def get_af_segments_agg(doctor_id: str, patient_id: str):
 def generate_report(doctor_id: str, patient_id: str):
 
     user_id = f"{doctor_id}_{patient_id}"
-
     doc = windows_collection.find_one({"user_id": user_id})
 
     if not doc:
@@ -215,36 +221,262 @@ def generate_report(doctor_id: str, patient_id: str):
 
     af_count = doc.get("af_count", 0)
     normal_count = doc.get("normal_count", 0)
-
     total = af_count + normal_count
     af_percentage = (af_count / total * 100) if total > 0 else 0
 
+    if af_percentage > 50:
+        risk = "High AF Risk"
+        risk_color = colors.HexColor("#C0392B")
+    elif af_percentage > 20:
+        risk = "Moderate Risk"
+        risk_color = colors.HexColor("#E67E22")
+    else:
+        risk = "Low Risk"
+        risk_color = colors.HexColor("#27AE60")
+
     buffer = io.BytesIO()
-    pdf = SimpleDocTemplate(buffer)
+
+    pdf = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        topMargin=0.6 * inch,
+        bottomMargin=0.75 * inch,
+        leftMargin=0.75 * inch,
+        rightMargin=0.75 * inch,
+    )
+
+    NAVY   = colors.HexColor("#1A3C5E")
+    STEEL  = colors.HexColor("#2E86AB")
+    LIGHT  = colors.HexColor("#EBF4FB")
+    GREY   = colors.HexColor("#5D6D7E")
+    RULE   = colors.HexColor("#BDC3C7")
+    WHITE  = colors.white
+
     styles = getSampleStyleSheet()
+
+    def style(name, **kw):
+        s = ParagraphStyle(name, **kw)
+        return s
+
+    header_label = style("HeaderLabel",
+        fontName="Helvetica", fontSize=8, textColor=WHITE, leading=10)
+
+    header_value = style("HeaderValue",
+        fontName="Helvetica-Bold", fontSize=9, textColor=WHITE, leading=11)
+
+    section_title = style("SectionTitle",
+        fontName="Helvetica-Bold", fontSize=10, textColor=NAVY,
+        spaceBefore=10, spaceAfter=4)
+
+    cell_label = style("CellLabel",
+        fontName="Helvetica", fontSize=9, textColor=GREY)
+
+    cell_value = style("CellValue",
+        fontName="Helvetica-Bold", fontSize=11, textColor=NAVY)
+
+    disclaimer_style = style("Disclaimer",
+        fontName="Helvetica-Oblique", fontSize=7.5, textColor=GREY,
+        leading=10, alignment=TA_CENTER)
+
+    def hrule(color=RULE, thickness=0.5):
+        d = Drawing(pdf.width, 1)
+        d.add(Line(0, 0, pdf.width, 0,
+                   strokeColor=color, strokeWidth=thickness))
+        return d
+
+    def metric_box(label, value, bg=LIGHT):
+        tbl = Table(
+            [[Paragraph(label, cell_label)],
+             [Paragraph(str(value), cell_value)]],
+            colWidths=[1.6 * inch],
+        )
+        tbl.setStyle(TableStyle([
+            ("BACKGROUND",  (0, 0), (-1, -1), bg),
+            ("ROUNDEDCORNERS", [4]),
+            ("BOX",         (0, 0), (-1, -1), 0.5, RULE),
+            ("TOPPADDING",  (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING",(0,0), (-1,-1), 6),
+            ("LEFTPADDING", (0, 0), (-1, -1), 8),
+            ("RIGHTPADDING",(0, 0), (-1, -1), 8),
+        ]))
+        return tbl
 
     content = []
 
-    content.append(Paragraph("ECG AF REPORT", styles["Title"]))
+    report_date = datetime.utcnow().strftime("%d %b %Y  %H:%M UTC")
+    header_data = [
+        [
+            Paragraph("CARDIOLOGY DEPARTMENT", header_label),
+            Paragraph("REPORT ID", header_label),
+            Paragraph("DATE GENERATED", header_label),
+        ],
+        [
+            Paragraph("ECG Atrial Fibrillation Analysis", header_value),
+            Paragraph(user_id.upper(), header_value),
+            Paragraph(report_date, header_value),
+        ],
+    ]
+    header_tbl = Table(header_data,
+                       colWidths=[pdf.width * 0.5,
+                                  pdf.width * 0.25,
+                                  pdf.width * 0.25])
+    header_tbl.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, -1), NAVY),
+        ("TOPPADDING",    (0, 0), (-1, -1), 8),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 12),
+        ("RIGHTPADDING",  (0, 0), (-1, -1), 12),
+        ("LINEBELOW",     (0, 0), (-1, 0), 0.5, STEEL),
+    ]))
+    content.append(header_tbl)
+    content.append(Spacer(1, 14))
+
+    content.append(Paragraph("PATIENT &amp; PHYSICIAN INFORMATION", section_title))
+    content.append(hrule())
+    content.append(Spacer(1, 6))
+
+    info_data = [
+        [Paragraph("Patient ID", cell_label),  Paragraph(patient_id, cell_value),
+         Paragraph("Physician ID", cell_label), Paragraph(doctor_id, cell_value)],
+        [Paragraph("Study Type", cell_label),
+         Paragraph("Ambulatory ECG – AF Classification", cell_value),
+         Paragraph("Classification", cell_label),
+         Paragraph("Automated (AI-Assisted)", cell_value)],
+    ]
+    info_tbl = Table(info_data,
+                     colWidths=[1.2*inch, 2.4*inch, 1.2*inch, 2.4*inch])
+    info_tbl.setStyle(TableStyle([
+        ("TOPPADDING",    (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 0),
+        ("LINEBELOW",     (0, 0), (-1, -1), 0.3, RULE),
+    ]))
+    content.append(info_tbl)
+    content.append(Spacer(1, 14))
+
+    content.append(Paragraph("ANALYSIS SUMMARY", section_title))
+    content.append(hrule())
+    content.append(Spacer(1, 8))
+
+    metrics_row = [[
+        metric_box("AF Segments",     af_count),
+        metric_box("Normal Segments", normal_count),
+        metric_box("Total Segments",  total),
+    ]]
+    metrics_tbl = Table(metrics_row,
+                        colWidths=[pdf.width / 3] * 3,
+                        hAlign="CENTER")
+    metrics_tbl.setStyle(TableStyle([
+        ("LEFTPADDING",  (0, 0), (-1, -1), 4),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+        ("VALIGN",       (0, 0), (-1, -1), "TOP"),
+    ]))
+    content.append(metrics_tbl)
+    content.append(Spacer(1, 14))
+
+    BAR_W = pdf.width
+    BAR_H = 22
+
+    bar_drawing = Drawing(BAR_W, BAR_H + 20)
+    # background track
+    bar_drawing.add(Rect(0, 10, BAR_W, BAR_H,
+                         fillColor=colors.HexColor("#DDE6EE"),
+                         strokeColor=None))
+    fill_w = BAR_W * (af_percentage / 100)
+    if fill_w > 0:
+        bar_drawing.add(Rect(0, 10, fill_w, BAR_H,
+                             fillColor=risk_color, strokeColor=None))
+    # label
+    bar_drawing.add(String(0, 2, "0%",
+                           fontName="Helvetica", fontSize=7,
+                           fillColor=GREY))
+    bar_drawing.add(String(BAR_W - 14, 2, "100%",
+                           fontName="Helvetica", fontSize=7,
+                           fillColor=GREY))
+    pct_label = f"{af_percentage:.1f}%"
+    bar_drawing.add(String(max(fill_w - 28, 2), 14, pct_label,
+                           fontName="Helvetica-Bold", fontSize=9,
+                           fillColor=WHITE))
+
+    content.append(Paragraph("AF BURDEN", section_title))
+    content.append(hrule())
+    content.append(Spacer(1, 6))
+    content.append(bar_drawing)
+    content.append(Spacer(1, 14))
+
+    content.append(Paragraph("RISK ASSESSMENT", section_title))
+    content.append(hrule())
+    content.append(Spacer(1, 6))
+
+    risk_style = ParagraphStyle("RiskValue",
+        fontName="Helvetica-Bold", fontSize=16,
+        textColor=risk_color, alignment=TA_CENTER)
+
+    risk_pct_style = ParagraphStyle("RiskPct",
+        fontName="Helvetica", fontSize=11,
+        textColor=GREY, alignment=TA_CENTER)
+
+    risk_data = [[
+        Paragraph(risk, risk_style),
+        Paragraph(f"AF Burden: {af_percentage:.2f}%", risk_pct_style),
+    ]]
+    risk_tbl = Table(risk_data, colWidths=[pdf.width * 0.5] * 2)
+    risk_tbl.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (0, 0), colors.HexColor("#FDF2F2") if af_percentage > 50
+                                  else colors.HexColor("#FEF9EC") if af_percentage > 20
+                                  else colors.HexColor("#EAFAF1")),
+        ("BACKGROUND",    (1, 0), (1, 0), LIGHT),
+        ("BOX",           (0, 0), (-1, -1), 0.8, risk_color),
+        ("LINEAFTER",     (0, 0), (0, 0), 0.5, RULE),
+        ("TOPPADDING",    (0, 0), (-1, -1), 12),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
+        ("VALIGN",        (0, 0), (-1, -1), "MIDDLE"),
+    ]))
+    content.append(risk_tbl)
+    content.append(Spacer(1, 14))
+
+    content.append(Paragraph("CLINICAL INTERPRETATION GUIDE", section_title))
+    content.append(hrule())
+    content.append(Spacer(1, 6))
+
+    interp_header = ParagraphStyle("InterpH",
+        fontName="Helvetica-Bold", fontSize=8.5, textColor=WHITE)
+    interp_cell = ParagraphStyle("InterpC",
+        fontName="Helvetica", fontSize=8.5, textColor=colors.black, leading=11)
+
+    def _p(txt, st): return Paragraph(txt, st)
+
+    interp_rows = [
+        [_p("AF Burden", interp_header), _p("Risk Level", interp_header),
+         _p("Recommended Action", interp_header)],
+        [_p("&lt; 20%", interp_cell), _p("Low Risk", interp_cell),
+         _p("Routine follow-up; lifestyle counselling", interp_cell)],
+        [_p("20 – 50%", interp_cell), _p("Moderate Risk", interp_cell),
+         _p("Cardiology review; consider rate/rhythm control", interp_cell)],
+        [_p("&gt; 50%", interp_cell), _p("High AF Risk", interp_cell),
+         _p("Urgent referral; anticoagulation evaluation", interp_cell)],
+    ]
+    interp_tbl = Table(interp_rows,
+                       colWidths=[1.4*inch, 1.4*inch, pdf.width - 2.8*inch])
+    interp_tbl.setStyle(TableStyle([
+        ("BACKGROUND",    (0, 0), (-1, 0), STEEL),
+        ("BACKGROUND",    (0, 2), (-1, 2), LIGHT),
+        ("ROWBACKGROUNDS",(0, 1), (-1, -1), [WHITE, LIGHT]),
+        ("GRID",          (0, 0), (-1, -1), 0.4, RULE),
+        ("TOPPADDING",    (0, 0), (-1, -1), 5),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+        ("LEFTPADDING",   (0, 0), (-1, -1), 8),
+    ]))
+    content.append(interp_tbl)
     content.append(Spacer(1, 20))
 
-    content.append(Paragraph(f"Doctor ID: {doctor_id}", styles["Normal"]))
-    content.append(Paragraph(f"Patient ID: {patient_id}", styles["Normal"]))
-    content.append(Spacer(1, 15))
-
-    content.append(Paragraph(f"AF Count: {af_count}", styles["Normal"]))
-    content.append(Paragraph(f"Normal Count: {normal_count}", styles["Normal"]))
-    content.append(Paragraph(f"Total Segments: {total}", styles["Normal"]))
-    content.append(Spacer(1, 15))
-
-    content.append(Paragraph(f"AF Percentage: {af_percentage:.2f}%", styles["Heading2"]))
-
+    content.append(hrule(color=STEEL, thickness=1))
+    content.append(Spacer(1, 5))
     pdf.build(content)
-
     buffer.seek(0)
 
     return StreamingResponse(
         buffer,
         media_type="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={user_id}_report.pdf"}
+        headers={"Content-Disposition": f"attachment; filename={user_id}_report.pdf"},
     )
