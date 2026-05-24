@@ -1,30 +1,35 @@
 export const monitorStyles = {
-    scrollWrapper: {
-        display: "flex",
-        overflowX: "auto",
-        backgroundColor: "#000",
-        border: "3px solid #333",
-        borderRadius: "8px",
-        padding: "10px",
-        cursor: "pointer",
-        gap: "10px"
-    },
-    segmentBlock: {
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        borderRight: "1px dashed rgba(0, 255, 0, 0.3)",
-        padding: "0 10px",
-        transition: "background 0.3s",
-        minWidth: "320px"
-    },
-    detailPanel: {
-        marginTop: "20px",
-        padding: "20px",
-        backgroundColor: "#111",
-        border: "2px solid #00ff00",
-        borderRadius: "8px",
-        color: "#00ff00",
-        fontFamily: "Courier New"
-    }
+  scrollWrapper: {
+    display: "flex",
+    overflowX: "auto",
+    background: "linear-gradient(135deg, rgba(7, 13, 26, 0.9), rgba(12, 22, 40, 0.95))",
+    border: "1px solid rgba(212, 168, 67, 0.2)",
+    borderRadius: "14px",
+    padding: "16px",
+    cursor: "pointer",
+    gap: "12px",
+    scrollbarWidth: "thin",
+    scrollbarColor: "rgba(212, 168, 67, 0.3) transparent",
+  },
+  segmentBlock: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    padding: "12px 14px",
+    borderRadius: "10px",
+    transition: "all 0.25s ease",
+    minWidth: "280px",
+    background: "rgba(255,255,255,0.02)",
+    border: "1px solid rgba(255,255,255,0.05)",
+  },
+  detailPanel: {
+    marginTop: "20px",
+    padding: "28px",
+    background: "linear-gradient(135deg, rgba(7, 13, 26, 0.95), rgba(12, 22, 40, 0.98))",
+    border: "1px solid rgba(212, 168, 67, 0.25)",
+    borderRadius: "16px",
+    color: "#f0eeea",
+    fontFamily: "'DM Sans', sans-serif",
+    boxShadow: "0 24px 64px rgba(0,0,0,0.5), 0 0 40px rgba(212,168,67,0.05)",
+  },
 };
