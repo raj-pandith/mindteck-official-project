@@ -38,6 +38,7 @@ from reportlab.lib.pagesizes import letter
 import io
 from fastapi import Response
 
+from change_stream import reset_user_state
 from datetime import datetime
 from reportlab.lib import colors
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -92,7 +93,6 @@ class PredictJsonRequest(BaseModel):
         description="Classification threshold for P(AF). Default 0.5.",
     )
 
-from change_stream import reset_user_state
 
 @app.post("/reset")
 async def reset(doctor_id: str, patient_id: str):
@@ -223,7 +223,7 @@ def generate_report(doctor_id: str, patient_id: str):
     normal_count = doc.get("normal_count", 0)
     total = af_count + normal_count
     af_percentage = (af_count / total * 100) if total > 0 else 0
-
+    monitoring_seconds = doc.get("EcgMonitoringTime", 0)
     if af_percentage > 50:
         risk = "High AF Risk"
         risk_color = colors.HexColor("#C0392B")
@@ -359,12 +359,13 @@ def generate_report(doctor_id: str, patient_id: str):
     content.append(Spacer(1, 8))
 
     metrics_row = [[
+        metric_box("Monitoring Duration", f"{monitoring_seconds}s"),
         metric_box("AF Segments",     af_count),
         metric_box("Normal Segments", normal_count),
         metric_box("Total Segments",  total),
     ]]
     metrics_tbl = Table(metrics_row,
-                        colWidths=[pdf.width / 3] * 3,
+                        colWidths=[pdf.width / 4] * 4,
                         hAlign="CENTER")
     metrics_tbl.setStyle(TableStyle([
         ("LEFTPADDING",  (0, 0), (-1, -1), 4),

@@ -20,4 +20,5 @@ public class MetaData {
     private String reportId;
 
     private Long timestamp;
+    private Integer EcgMonitoringTime;
 }

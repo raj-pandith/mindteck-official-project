@@ -65,6 +65,7 @@ public class ReadDatasetService {
                 meta.setDoctorId(doctorId);
                 meta.setReportId(reportId);
                 meta.setTimestamp(System.currentTimeMillis());
+                meta.setEcgMonitoringTime(seconds);
 
                 data.setMetaData(meta);
 

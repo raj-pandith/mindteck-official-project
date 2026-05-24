@@ -125,7 +125,7 @@ function App() {
           <div style={appStyles.logoArea}>
             <div style={appStyles.logoIcon}>
               <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                <path d="M3 12h3l3-9 4 18 3-9h5" stroke="#d4a843" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M3 12h3l3-9 4 18 3-9h5" stroke="#d4a843" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </div>
             <div>
@@ -144,9 +144,11 @@ function App() {
 
           {/* Status badge */}
           <div style={{ ...appStyles.statusBadge, ...(reportId ? appStyles.statusLive : appStyles.statusIdle) }}>
-            <span style={{ ...appStyles.statusDot, background: reportId ? "#4ecdc4" : "#5a5870",
+            <span style={{
+              ...appStyles.statusDot, background: reportId ? "#4ecdc4" : "#5a5870",
               boxShadow: reportId ? "0 0 8px #4ecdc4" : "none",
-              animation: reportId ? "pulse-glow 2s ease-in-out infinite" : "none" }} />
+              animation: reportId ? "pulse-glow 2s ease-in-out infinite" : "none"
+            }} />
             {reportId ? "Streaming" : "Standby"}
           </div>
         </div>
@@ -166,7 +168,7 @@ function App() {
           <div style={appStyles.fileTag}>
             <span style={{ color: "#d4a843", marginRight: 6 }}>▶</span>
             {currentFileName}
-            {reportId && <span style={{ color: "#5a5870", marginLeft: 8 }}>#{reportId.slice(0,8)}</span>}
+            {reportId && <span style={{ color: "#5a5870", marginLeft: 8 }}>#{reportId.slice(0, 8)}</span>}
           </div>
         )}
       </nav>
@@ -186,6 +188,67 @@ function App() {
               fetchWindowDetails={fetchWindowDetails} scrollRef={scrollRef} />
             <WindowDetailPanel selectedWindow={selectedWindow}
               loadingDetail={loadingDetail} setSelectedWindow={setSelectedWindow} />
+
+            {
+              doctorId && patientId && (
+                <button
+                  onClick={async (e) => {
+                    const btn = e.currentTarget;   // ✅ FIXED
+                    btn.disabled = true;
+                    btn.innerHTML = `
+                    <span style="
+                      width:16px;
+                      height:16px;
+                      border:2px solid #04070f;
+                      border-top:2px solid transparent;
+                      border-radius:50%;
+                      display:inline-block;
+                      animation: spin 0.6s linear infinite;
+                    "></span>Generating…
+                  `;
+
+                    try {
+                      const url = `http://localhost:8000/generate-report?doctor_id=${doctorId}&patient_id=${patientId}`;
+                      const res = await fetch(url);
+                      const blob = await res.blob();
+
+                      const link = document.createElement('a');
+                      link.href = window.URL.createObjectURL(blob);
+                      link.download = `report_${patientId}_${doctorId}.pdf`;
+                      link.click();
+                    } catch (err) {
+                      alert('Download failed: ' + err.message);
+                    } finally {
+                      btn.disabled = false;
+                      btn.innerHTML = `<svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+        stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+      </svg>Download report`;
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: 8,
+                    padding: '11px 22px', borderRadius: 10, border: 'none', cursor: 'pointer',
+                    fontSize: 14, fontWeight: 500, letterSpacing: '0.03em',
+                    fontFamily: "'DM Sans', sans-serif",
+                    background: 'linear-gradient(135deg, #d4a843, #b8893a)',
+                    color: '#04070f',
+                    transition: 'opacity 0.2s, transform 0.15s',
+                    boxShadow: '0 4px 20px rgba(212,168,67,0.25)',
+                  }}
+
+                  onMouseEnter={e => e.currentTarget.style.opacity = '0.88'}
+                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
+                >
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3" />
+                  </svg>
+                  Download report
+                </button>
+              )
+            }
+
           </div>
         )}
         {activeTab === "af-segments" && (
@@ -213,8 +276,10 @@ function App() {
 
 function StatPill({ label, value, color }) {
   return (
-    <div style={{ textAlign: "center", padding: "8px 16px", background: "rgba(255,255,255,0.03)",
-      borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)" }}>
+    <div style={{
+      textAlign: "center", padding: "8px 16px", background: "rgba(255,255,255,0.03)",
+      borderRadius: 8, border: "1px solid rgba(255,255,255,0.06)"
+    }}>
       <div style={{ fontSize: 11, color: "#5a5870", letterSpacing: "0.08em", textTransform: "uppercase", marginBottom: 2 }}>{label}</div>
       <div style={{ fontSize: 18, fontWeight: 500, color, fontFamily: "'JetBrains Mono', monospace" }}>{value}</div>
     </div>

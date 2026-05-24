@@ -76,6 +76,7 @@ def watch_inserts():
             meta = doc.get("metaData", {})
             doctor_id = str(meta.get("doctorId", "")).strip()
             patient_id = str(meta.get("patientId", "")).strip()
+            EcgMonitoringTime = meta.get("ecgMonitoringTime", 0)
             if not doctor_id or not patient_id:
                 print("Missing doctorId/patientId")
                 continue
@@ -100,7 +101,8 @@ def watch_inserts():
                     "type": "LIVE_SAMPLE",
                     "value": filtered,
                     "timestamp": arrival_time.isoformat(),
-                    "user_id": user_id
+                    "user_id": user_id,
+                    "EcgMonitoringTime": EcgMonitoringTime
                 }
                 asyncio.run_coroutine_threadsafe(
                     manager.broadcast_to_user(
@@ -129,7 +131,7 @@ def watch_inserts():
 
             try:
                 window_queue.put(
-                    (window_id, user_id, window.copy(), arrival_time),
+                    (window_id, user_id, window.copy(), arrival_time,EcgMonitoringTime),
                     timeout=1
                 )
                 print(f"[{user_id}] Window queued: {window_id}")
@@ -141,7 +143,7 @@ def watch_inserts():
 
 
 def process_windows():
-    global manager, main_loop
+    # global manager, main_loop
 
     window_duration = 5
 
@@ -149,7 +151,7 @@ def process_windows():
         item = window_queue.get()
 
         try:
-            window_id, user_id, window, actual_end_time = item
+            window_id, user_id, window, actual_end_time, EcgMonitoringTime = item
 
             print(f"[{user_id}] Processing {window_id}")
 
@@ -194,6 +196,7 @@ def process_windows():
                         "doctor_id": doctor_id,
                         "patient_id": patient_id,
                         "session_start": start_time,
+                        "EcgMonitoringTime": EcgMonitoringTime
                     },
                     "$set": {
                         "session_end": end_time,
@@ -226,7 +229,8 @@ def process_windows():
                 "prediction": label,
                 "confidence": prob,
                 "timestamp": actual_end_time.isoformat(),
-                 "af_count": af_count,
+                "EcgMonitoringTime": EcgMonitoringTime,
+                "af_count": af_count,
                 "normal_count": normal_count,
             }
 

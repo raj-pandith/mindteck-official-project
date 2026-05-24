@@ -8,4 +8,4 @@ db = client["ecg_db"]
 
 collection = db["ecg_signals"]
 
-windows_collection = db["ecg_windows"]
+windows_collection = db["patient_records"]
