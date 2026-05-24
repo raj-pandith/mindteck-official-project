@@ -19,6 +19,6 @@ public class InsertDataIntoMongoAtlasService {
 
         kafkaTemplate.send("rawecg", key, data);
 
-        System.out.println("Data pushed with reportId: " + key);
+        // System.out.println("Data pushed with reportId: " + key);
     }
 }

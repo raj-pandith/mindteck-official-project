@@ -91,8 +91,10 @@ async def reset(doctor_id: str, patient_id: str):
     user_id = f"{doctor_id}_{patient_id}"
 
     print(f"Reset for {user_id}")
-
-    # ✅ Reset only this user's buffer + filter
+    
+    windows_collection.delete_many(
+        { "user_id": user_id }
+    )
     reset_user_state(user_id)
 
     return {"status": "reset done"}
