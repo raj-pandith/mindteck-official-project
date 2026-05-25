@@ -19,3 +19,17 @@ curl -X POST http://localhost:8083/connectors \
   }
 }'
 
+check connection : 
+
+curl http://localhost:8083/connectors/mongo-sink/status
+
+check for in reponse:
+{
+  "name": "mongo-sink",
+  "connector": {
+    "state": "RUNNING"
+  },
+  "tasks": [
+    { "state": "RUNNING" }
+  ]
+}
