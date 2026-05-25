@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from fastapi import HTTPException
 import io
 import tempfile
 from pathlib import Path
@@ -57,6 +58,7 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# middleaware to allow CORS from any origin
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -69,6 +71,7 @@ app.add_middleware(
 
 @app.on_event("startup")
 async def start_change_stream():
+    '''Initialize the change stream listener and processing threads on application startup.'''
     global main_loop
 
     main_loop = asyncio.get_running_loop()
@@ -81,6 +84,7 @@ async def start_change_stream():
 
     print("Background threads started and manager injected.")
 
+# Pydantic model for the JSON request body of the /predict/json endpoint
 class PredictJsonRequest(BaseModel):
     windows: List[List[float]] = Field(
         ...,
@@ -94,6 +98,8 @@ class PredictJsonRequest(BaseModel):
     )
 
 
+# Endpoint to reset the state for a specific doctor-patient pair, clearing all stored windows and resetting counts.
+# this is happended each time a file is uploaded in frontend 
 @app.post("/reset")
 async def reset(doctor_id: str, patient_id: str):
     user_id = f"{doctor_id}_{patient_id}"
@@ -112,6 +118,7 @@ def health():
     return {"status": "ok", "device": str(DEVICE)}
 
 
+# Prediction endpoint that accepts raw ECG windows in JSON format, runs inference, and returns results.
 @app.post("/predict/json", tags=["Prediction"])
 def predict_from_json(body: PredictJsonRequest):
 
@@ -127,6 +134,7 @@ def predict_from_json(body: PredictJsonRequest):
 
     return result
 
+# WebSocket endpoint for real-time updates to clients. Clients connect with doctor_id and patient_id to receive updates specific to that pair.
 @app.websocket("/ws/{doctor_id}/{patient_id}")
 async def websocket_endpoint(websocket: WebSocket, doctor_id: str, patient_id: str):
     await manager.connect(doctor_id, patient_id, websocket)
@@ -138,6 +146,7 @@ async def websocket_endpoint(websocket: WebSocket, doctor_id: str, patient_id: s
         manager.disconnect(doctor_id, patient_id)
         print(f"Disconnected: {doctor_id}_{patient_id}")
 
+# Endpoint to retrieve all stored windows for debugging or review purposes.
 @app.get("/windows")
 def get_windows():
     data = list(
@@ -145,9 +154,8 @@ def get_windows():
     )
     return data
 
-from fastapi import HTTPException
 
-
+# Endpoint to retrieve a specific window segment for a given patient and window ID. This is used for detailed review of individual segments.
 @app.get("/window/{patient_id}/{window_id}")
 async def get_patient_window_segment(patient_id: str, window_id: str):
     try:
@@ -182,7 +190,7 @@ async def get_patient_window_segment(patient_id: str, window_id: str):
             detail=f"Internal aggregation engine breakdown: {str(e)}"
         )
 
-
+# Endpoint to retrieve aggregated AF segments for a given doctor-patient pair. This returns all segments labeled as AF along with their probabilities and timestamps.
 @app.get("/af-segments-agg")
 def get_af_segments_agg(doctor_id: str, patient_id: str):
     user_id = f"{doctor_id}_{patient_id}"
@@ -210,6 +218,8 @@ def get_af_segments_agg(doctor_id: str, patient_id: str):
         "total_af_segments": len(results),
         "af_segments": results
     }
+
+# Endpoint to generate a PDF report for a specific doctor-patient pair. The report includes AF burden, risk assessment, and clinical interpretation based on the aggregated data.
 @app.get("/generate-report")
 def generate_report(doctor_id: str, patient_id: str):
 

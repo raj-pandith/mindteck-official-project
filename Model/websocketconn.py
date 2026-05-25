@@ -1,5 +1,5 @@
 from fastapi import WebSocket
-
+# This class manages WebSocket connections for doctor-patient communication. It allows for connecting, disconnecting, and broadcasting messages to all connected clients for a specific doctor-patient pair. The connections are stored in a dictionary where the key is a combination of doctor_id and patient_id, and the value is a list of WebSocket connections. The class also includes a method to clear all connections, which can be useful for cleanup or resetting the state.
 class ConnectionManager:
     def __init__(self):
         self.connections = {}

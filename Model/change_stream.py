@@ -17,17 +17,17 @@ user_states = {}
 window_queue = queue.Queue(maxsize=100)
 
 
-
+#   Helper function to slide the buffer for the next window
 def slide_buffer(buffer, step=300):
     return buffer[step:] if len(buffer) > step else []
 
-
+# Helper function to generate a unique window ID based on user ID and timestamp
 def generate_window_id(user_id, timestamp):
     if not isinstance(timestamp, datetime):
         timestamp = datetime.utcnow()
     return f"{user_id}_{timestamp.strftime('%Y%m%d%H%M%S%f')}"
 
-
+# Function to get or initialize user state (filter, buffer, last timestamp)
 def get_user_state(user_id):
     if user_id not in user_states:
         user_states[user_id] = {
@@ -37,7 +37,7 @@ def get_user_state(user_id):
         }
     return user_states[user_id]
 
-
+# Helper function to parse timestamp from metadata
 def parse_timestamp(meta):
     ts = meta.get("timestamp")
 
@@ -48,6 +48,7 @@ def parse_timestamp(meta):
     else:
         return datetime.utcnow()
 
+# Function to reset user state (clear buffer, reset filter, clear last timestamp)
 def reset_user_state(user_id):
     if user_id in user_states:
         state = user_states[user_id]
@@ -61,7 +62,7 @@ def reset_user_state(user_id):
 
         print(f"Reset state for {user_id}")
 
-
+#   Main function to watch MongoDB inserts and process ECG data in real-time
 def watch_inserts():
     print("Watching MongoDB inserts...")
 
@@ -141,9 +142,8 @@ def watch_inserts():
             ecg_buffer.buffer = slide_buffer(ecg_buffer.buffer)
 
 
-
+# Function to process windows from the queue, run inference, and update MongoDB and WebSocket clients
 def process_windows():
-    # global manager, main_loop
 
     window_duration = 5
 

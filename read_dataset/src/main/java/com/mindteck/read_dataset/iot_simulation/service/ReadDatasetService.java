@@ -21,6 +21,7 @@ public class ReadDatasetService {
 
     private final InsertDataIntoMongoAtlasService insertDataService;
 
+    // method to read the uploaded dataset file and process it
     public void readEcgDatasetFromUpload(MultipartFile file, int seconds,
             String patientId, String doctorId) throws IOException {
 
@@ -38,6 +39,7 @@ public class ReadDatasetService {
         }
     }
 
+    // method to read the .npy file, extract ECG samples, and push data to Kafka
     private void processNpyFile(Path path, int seconds,
             String patientId,
             String doctorId,
@@ -48,7 +50,8 @@ public class ReadDatasetService {
             double[] samples = (double[]) npyArray.getData();
 
             int frequencySample = 360;
-            int rows = seconds * frequencySample;
+            int rows = seconds * frequencySample; // calculate the number of samples to read based on the specified
+                                                  // seconds and sampling frequency
             int limit = Math.min(rows, samples.length);
 
             for (int i = 0; i < limit; i++) {
@@ -69,7 +72,7 @@ public class ReadDatasetService {
 
                 data.setMetaData(meta);
 
-                insertDataService.pushToKafka(data);
+                insertDataService.pushToKafka(data);// push the data to Kafka topic for further processing
             }
 
         } catch (Exception e) {

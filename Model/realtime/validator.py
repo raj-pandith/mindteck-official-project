@@ -11,7 +11,7 @@ import neurokit2 as nk
 SAMPLING_RATE = 360
 MIN_R_PEAKS = 4
 
-
+# Function to validate if a given ECG window contains enough R-peaks to be considered valid for inference
 def is_valid_window(window):
 
     try:

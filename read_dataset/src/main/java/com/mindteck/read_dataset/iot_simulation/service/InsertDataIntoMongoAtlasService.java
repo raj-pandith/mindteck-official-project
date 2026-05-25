@@ -15,8 +15,8 @@ public class InsertDataIntoMongoAtlasService {
 
     private final KafkaTemplate<String, PushDataToMongoAtlas> kafkaTemplate;
 
+    // method to push the ECG data to Kafka topic
     public void pushToKafka(PushDataToMongoAtlas data) {
-
         String key = data.getMetaData().getReportId();
         kafkaTemplate.send(
                 "rawecg", key, data)

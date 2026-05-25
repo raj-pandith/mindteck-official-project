@@ -7,11 +7,12 @@ MODEL_SAVE_PATH = "AF_MODEL.pth"
 DEFAULT_THRESHOLD = 0.5
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
+# Define the CNN architecture for ECG classification
 class ECG_CNN(nn.Module):
     def __init__(self, dropout: float = 0.5):
         super().__init__()
 
+# Helper function to create a convolutional block
         def conv_block(in_ch, out_ch, k, pool):
             return nn.Sequential(
                 nn.Conv1d(in_ch, out_ch, kernel_size=k,
@@ -35,7 +36,7 @@ class ECG_CNN(nn.Module):
             nn.Dropout(dropout),
             nn.Linear(256, 1),
         )
-
+ 
     def forward(self, x):
         return self.head(self.gap(self.features(x))).squeeze(1)
 

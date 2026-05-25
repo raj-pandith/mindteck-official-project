@@ -2,7 +2,7 @@ import numpy as np
 from scipy.signal import butter, lfilter, lfilter_zi
 
 SAMPLING_RATE = 360
-
+#   Default threshold for classifying a segment as arrhythmic based on model output probability
 class RealTimeBandpassFilter:
     def __init__(self, lowcut=0.5, highcut=40.0, fs=SAMPLING_RATE, order=4):
         nyq = 0.5 * fs

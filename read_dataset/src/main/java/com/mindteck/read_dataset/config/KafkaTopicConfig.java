@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class KafkaTopicConfig {
 
+    // dynamically creating the topic if it doesn't exist 
     @Bean
     public NewTopic ecgTopic() {
         return new NewTopic(
